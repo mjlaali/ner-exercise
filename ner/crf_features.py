@@ -11,8 +11,8 @@ separator = '\t'
 # Field names of the input data.
 fields = 'w y'
 
+from ner import crfutils
 
-import crfutils
 
 def get_shape(token):
     r = ''
