@@ -82,10 +82,8 @@ def test_model(model_file):
     test_file = os.path.join(os.path.dirname(__file__), '../data/test.txt')
     test_sents, y_test = preprocessor.read_tagged_file(test_file)
     test_words_vecs, test_chars_vecs = preprocessor.convert_word_to_index(test_sents)
-    test_tags_vec = preprocessor.convert_tags_to_index(y_test)
     X_word_test, X_char_test = preprocessor.pad_dataset(test_words_vecs, test_chars_vecs)
     X_char_test = X_char_test.reshape(X_char_test.shape[0], X_char_test.shape[1] * X_char_test.shape[2])
-    Y_test = preprocessor.pad_tags(test_tags_vec)
     _, tag_dict, _, _ = preprocessor.get_dictionaries_and_max()
     reversed_tag_dict = dict(zip(tag_dict.values(), tag_dict.keys()))
 
@@ -126,7 +124,8 @@ def train_model():
         pickle.dump(preprocessor, output, pickle.HIGHEST_PROTOCOL)
 
 import time
+
 if __name__ == "__main__":
-    #train_model()
+    train_model()
     test()
     time.sleep(1) # delays to close the tensorflow session
