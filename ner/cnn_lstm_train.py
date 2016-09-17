@@ -24,15 +24,6 @@ class CNN_LSTM_Model:
         self.word_vocab_size = word_vocab_size
         self.output_vocab_size = output_vocab_size
 
-    def construct_model2(self, char_embedding_size, nb_filters, word_embedding_size, embedding_weights, lstm_dim):
-        model_word = Sequential()
-        model_word.add(Embedding(self.word_vocab_size, self.output_vocab_size, input_length=self.max_sent_len))
-        model_word.add(TimeDistributed(Dense(100)))
-        model_word.add(TimeDistributed(Dense(self.output_vocab_size)))
-        model_word.add(Activation('softmax'))
-        self.model = model_word
-        return model_word
-
     def construct_model(self, char_embedding_size, nb_filters, word_embedding_size, embedding_weights, lstm_dim):
         filter_length = 3
 
