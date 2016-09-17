@@ -24,7 +24,7 @@ while True:
     if sample_sentence == "exit":
         break
     test_sents = [sample_sentence.strip().lower().split()]
-    test_words_vecs, test_chars_vecs = preprocessor.convert_word_to_index(test_sents)
+    test_words_vecs, test_chars_vecs = preprocessor.get_char_vectors(test_sents)
     X_word_test, X_char_test = preprocessor.pad_dataset(test_words_vecs, test_chars_vecs)
     X_char_test = X_char_test.reshape(X_char_test.shape[0], X_char_test.shape[1] * X_char_test.shape[2])
 
