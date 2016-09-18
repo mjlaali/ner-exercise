@@ -59,7 +59,7 @@ class CNN_LSTM_Model:
         return final_model
 
     def fit(self, X_char, X_word, X_features, Y, batch_size, max_epochs):
-        early_stop = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
+        early_stop = EarlyStopping(monitor='val_loss', patience=20, verbose=1)
         save_model = ModelCheckpoint('data/coling-tag/best_model.{epoch:02d}.hdf5', save_best_only=True)
         optimizer = Adam()
         self.model.compile(optimizer = optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
