@@ -9,7 +9,8 @@ class PretrainedWordVectorReader:
 
     def load(self, words, delimiter='\t'):
         print('start loading word vectors ...')
-        len_embedding_vector = 0
+
+        words = set([word.lower() for word in words])
         with open(self.word_vector_file, 'r') as csvfile:
             word_vectors = csv.reader(csvfile, delimiter=delimiter, quoting=csv.QUOTE_NONE)
             word_embedding = {}
@@ -48,6 +49,7 @@ class PretrainedWordVectorReader:
         for sent in sents:
             sent_vector = list()
             for word in sent:
+                word = word.lower()
                 if word in self.word_embedding:
                     sent_vector.append(self.word_embedding[word])
                 else:
