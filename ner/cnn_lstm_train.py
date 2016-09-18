@@ -50,17 +50,33 @@ class CNN_LSTM_Model:
         self.model = final_model
         return final_model
 
-    def fit(self, X_word_train, X_char_train, Y_train, batch_size, max_epochs):
+    def fit(self, X_word, X_char, Y, batch_size, max_epochs):
         early_stop = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
         save_model = ModelCheckpoint('data/models/best_model.{epoch:02d}.hdf5', save_best_only=True)
         optimizer = Adam()
         self.model.compile(optimizer = optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
-        X_char_train = X_char_train.reshape(X_char_train.shape[0], X_char_train.shape[1] * X_char_train.shape[2])
-        validation_start_idx = int(0.9 * Y_train.shape[0])
+        X_char = X_char.reshape(X_char.shape[0], X_char.shape[1] * X_char.shape[2])
+        validation_start_idx = int(0.9 * Y.shape[0])
 
-        self.model.fit([X_char_train[:validation_start_idx], X_word_train[:validation_start_idx]], Y_train[:validation_start_idx],
+        if validation_start_idx == 0:
+            # X_train = [X_char, X_word]
+            X_train = [X_char, X_word]
+            Y = Y
+            validation_data = None
+            callbacks = []
+        else:
+            X_train = [X_char[:validation_start_idx], X_word[:validation_start_idx]]
+            Y = Y[:validation_start_idx]
+            validation_data = ([X_char[validation_start_idx:], X_word[validation_start_idx:]], Y[validation_start_idx:])
+            callbacks = [save_model, early_stop]
+        self.model.fit(X_train, Y,
                        batch_size=batch_size, nb_epoch=max_epochs,
-                       validation_data=([X_char_train[validation_start_idx:], X_word_train[validation_start_idx:]], Y_train[validation_start_idx:]),
+                       validation_data=validation_data,
+                       callbacks=callbacks)
+
+        self.model.fit([X_char[:validation_start_idx], X_word[:validation_start_idx]], Y[:validation_start_idx],
+                       batch_size=batch_size, nb_epoch=max_epochs,
+                       validation_data=([X_char[validation_start_idx:], X_word[validation_start_idx:]], Y[validation_start_idx:]),
                        callbacks=[save_model, early_stop])
 
 
@@ -109,7 +125,8 @@ def train_model():
     X_word_train, X_char_train, Y_train = preprocessor.get_padded_train_datatset()
     model = model_generator.construct_model(100, 100, 301, preprocessor.get_embedding_weights(), 256)
     print(model.summary())
-    model_generator.fit(X_word_train, X_char_train, Y_train, 8, 99)
+    indexes = np.array([0])
+    model_generator.fit(X_word_train[indexes], X_char_train[indexes], Y_train[indexes], 8, 99)
 
     with open('preprocessor.pk', 'wb') as output:
         pickle.dump(preprocessor, output, pickle.HIGHEST_PROTOCOL)
