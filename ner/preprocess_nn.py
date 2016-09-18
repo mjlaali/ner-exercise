@@ -100,12 +100,11 @@ def load(train_dataset_file, word_vector_file, delimiter='\t', detailed=False):
     X_words = pad_sequences_2D(sent_words_int, max_sent_len, word_embedding_size , dtype='float32')
 
     category_manager = CategoryManager(sent_tags)
-    sent_tags_int = category_manager.convert_to_int(sent_tags)
+    Y = category_manager.pad_tags(sent_tags, max_sent_len)
     nb_classes = category_manager.get_num_classes()
-    Y = pad_sequences_2D(sent_tags_int, max_sent_len, nb_classes)
 
     if detailed:
-        return X_chars, X_words, Y, sent_words, sent_tags, sent_words_int, sent_tags_int, sent_words_chars
+        return X_chars, X_words, Y, sent_words, sent_tags, sent_words_int, sent_words_chars
     else:
         return X_chars, X_words, Y, char_vocab_size, max_sent_len, max_word_len, word_embedding_size, nb_classes
 
@@ -117,7 +116,7 @@ def main():
     word_vector_file = os.path.join(os.path.dirname(__file__), '../data/maluuba/wordvecs.txt')
 
 
-    X_chars, X_words, Y, sent_words, sent_tags, sent_words_int, sent_tags_int, sent_words_chars = load(
+    X_chars, X_words, Y, sent_words, sent_tags, sent_words_int, sent_words_chars = load(
         train_dataset_file, word_vector_file, delimiter='\t', detailed=True)
 
     print('sample :\nword = {} \ntags = {} \nchar = {} \n\tAfter padding:\nword = {} \ntags = {} \nchar = {}'.format(
@@ -127,7 +126,7 @@ def main():
         print(sent_words[i])
         print(sent_tags[i])
         print('sample {}:\nword = {} \ntags = {} \nchar = {} \n\tAfter padding:\nword = {} \ntags = {} \nchar = {}'.format(
-              i, sent_words_int[i], sent_tags_int[i], sent_words_chars[i], X_words[i], Y[i], X_chars[i]))
+              i, sent_words_int[i], sent_tags[i], sent_words_chars[i], X_words[i], Y[i], X_chars[i]))
 
 if __name__ == "__main__":
     # execute only if run as a script

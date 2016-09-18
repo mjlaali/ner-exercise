@@ -1,5 +1,7 @@
 import itertools
 
+import numpy as np
+from keras.preprocessing.sequence import pad_sequences
 from keras.utils import np_utils
 
 
@@ -14,9 +16,19 @@ class CategoryManager:
         self.tag_dictionary = dict()
 
         for tag in sorted_tags:
-            self.tag_dictionary[tag] = len(self.tag_dictionary) + 2
+            self.tag_dictionary[tag] = len(self.tag_dictionary) + 1
         self.reverse_dictionary = dict(zip(self.tag_dictionary.values(), self.tag_dictionary.keys()))
-        self.nb_classes = len(self.tag_dictionary) + 2
+        self.nb_classes = len(self.tag_dictionary) + 1
+
+    def pad_tags(self, sent_tags, max_sent_len):
+        sent_tags_int = self.convert_to_int(sent_tags)
+        Y_int = pad_sequences(sent_tags_int, max_sent_len)
+        Y = list()
+        for y_seq in Y_int:
+            y = np_utils.to_categorical(y_seq, nb_classes=self.nb_classes)
+            Y.append(y.tolist())
+
+        return np.array(Y)
 
     # Y_padded_train = pad_sequences(raw_tag_train, self.max_sent_len)
     # Y_one_hot = np.zeros((len(Y_padded_train), self.max_sent_len, self.nb_classes))
@@ -30,7 +42,7 @@ class CategoryManager:
             y = []
             for tag in a_tag_seq:
                 y.append(self.tag_dictionary[tag])
-            Y.append(np_utils.to_categorical(y, nb_classes=self.nb_classes))
+            Y.append(y)
 
         return Y
 

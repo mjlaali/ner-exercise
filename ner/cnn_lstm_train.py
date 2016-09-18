@@ -23,7 +23,7 @@ class CNN_LSTM_Model:
         self.nb_classes = nb_classes
         self.word_embedding_size = word_embedding_size
 
-    def construct_model(self, char_embedding_size, nb_filters, lstm_dim):
+    def construct_model2(self, char_embedding_size, nb_filters, lstm_dim):
         filter_length = 3
         model_cnn = Sequential()
         model_cnn.add(Embedding(self.char_vocab_size, char_embedding_size, input_length=self.max_sent_len * self.max_word_len, mask_zero=False))
@@ -36,13 +36,13 @@ class CNN_LSTM_Model:
         self.model = final_model
         return final_model
 
-    def construct_model2(self, char_embedding_size, nb_filters, lstm_dim):
+    def construct_model(self, char_embedding_size, nb_filters, lstm_dim):
         filter_length = 3
 
         model_cnn = Sequential()
         model_cnn.add(Embedding(self.char_vocab_size, char_embedding_size, input_length=self.max_sent_len * self.max_word_len))
-        model_cnn.add(Reshape)
-        model_cnn.add(Convolution1D(nb_filters, 1, filter_length, border_mode='same', dim_ordering='tf'))
+        model_cnn.add(Reshape((self.max_sent_len, self.max_word_len, char_embedding_size)))
+        model_cnn.add(Convolution2D(nb_filters, 1, filter_length, border_mode='same', dim_ordering='tf'))
         model_cnn.add(MaxPooling2D(pool_size=(1, self.max_word_len), dim_ordering='tf'))
         model_cnn.add(Reshape((self.max_sent_len, nb_filters)))
 
@@ -54,7 +54,7 @@ class CNN_LSTM_Model:
 
         final_model = Sequential()
         final_model.add(merged)
-        final_model = model_cnn
+        # final_model = model_cnn
         final_model.add(Bidirectional(LSTM(output_dim=lstm_dim, activation='sigmoid', inner_activation='hard_sigmoid',
                                  return_sequences=True), merge_mode='concat'))
         final_model.add(Dropout(0.5))
@@ -72,8 +72,8 @@ class CNN_LSTM_Model:
         X_char = X_char.reshape(X_char.shape[0], X_char.shape[1] * X_char.shape[2])
         validation_start_idx = int(0.9 * Y.shape[0])
         if validation_start_idx == 0:
-            # X_train = [X_char, X_word]
-            X_train = [X_char]
+            X_train = [X_char, X_word]
+            # X_train = [X_char]
             Y_train = Y
             validation_data = None
             callbacks = []
@@ -91,6 +91,7 @@ class CNN_LSTM_Model:
 import os
 
 def test_model(model_file, test_file, wordvects_file):
+    pass
     # train_file = os.path.join(os.path.dirname(__file__), '../data/coling2016/train')
     # trian_sents, y_train = preprocessor.read_tagged_file(train_file)
     # train_words_vecs, train_chars_vecs = preprocessor.convert_word_to_index(trian_sents)
@@ -98,24 +99,25 @@ def test_model(model_file, test_file, wordvects_file):
     #
     # print(train_words_vecs[10])
     # print(expected_word_idx[10])
-    X_char, X_word, Y, char_vocab_size, max_sent_len, max_word_len, nb_classes = ner.preprocess_nn.load(test_file,
-                                                                                                        wordvects_file)
-    X_char = X_char.reshape(X_char.shape[0], X_char.shape[1] * X_char.shape[2])
-    reversed_tag_dict = dict(zip(tag_dict.values(), tag_dict.keys()))
 
-    model = load_model(model_file)
-    Y_predict = model.predict([X_char_test, X_word_test])
-    Y_predict = np.argmax(Y_predict, axis=2)
-
-    y_pred = list()
-    for i in range(Y_predict.shape[0]):
-        y_list = Y_predict[i].tolist()
-        y_pred.append([reversed_tag_dict[y] for y in y_list if y > 0])
-
-    for i in range(10):
-        print('{}\n{}\n'.format(y_test[i], y_pred[i]))
-
-    print(bio_classification_report(y_test, y_pred))
+    # X_char, X_word, Y, char_vocab_size, max_sent_len, max_word_len, nb_classes = ner.preprocess_nn.load(test_file,
+    #                                                                                                     wordvects_file)
+    # X_char = X_char.reshape(X_char.shape[0], X_char.shape[1] * X_char.shape[2])
+    # reversed_tag_dict = dict(zip(tag_dict.values(), tag_dict.keys()))
+    #
+    # model = load_model(model_file)
+    # Y_predict = model.predict([X_char_test, X_word_test])
+    # Y_predict = np.argmax(Y_predict, axis=2)
+    #
+    # y_pred = list()
+    # for i in range(Y_predict.shape[0]):
+    #     y_list = Y_predict[i].tolist()
+    #     y_pred.append([reversed_tag_dict[y] for y in y_list if y > 0])
+    #
+    # for i in range(10):
+    #     print('{}\n{}\n'.format(y_test[i], y_pred[i]))
+    #
+    # print(bio_classification_report(y_test, y_pred))
 
 
 def train_model(train_file, wordvects_file):
@@ -124,7 +126,7 @@ def train_model(train_file, wordvects_file):
     print('Chars={}, Classes={}, Max sent len={}, Max word len={}'.format(char_vocab_size, nb_classes,
                                                                        max_sent_len, max_word_len))
 
-    model_generator = CNN_LSTM_Model(max_sent_len=max_sent_len, mpool_lengthax_word_len=max_word_len, char_vocab_size=char_vocab_size,
+    model_generator = CNN_LSTM_Model(max_sent_len=max_sent_len, max_word_len=max_word_len, char_vocab_size=char_vocab_size,
                                      nb_classes=nb_classes, word_embedding_size=word_embedding_size)
 
     print('start constructing the model ...')
@@ -133,13 +135,6 @@ def train_model(train_file, wordvects_file):
     print('start learning the model ...')
     indexes = np.array([1])
     model_generator.fit(X_char=X_char[indexes], X_word=X_word[indexes], Y=Y[indexes], batch_size=8, max_epochs=1000)
-
-    X_char = X_char.reshape(X_char.shape[0], X_char.shape[1] * X_char.shape[2])
-    Y_predict = model.predict(X_char[indexes])
-    Y_predict = np.argmax(Y_predict, axis=2)
-
-    print(Y_predict)
-    print(np.argmax(Y[indexes], axis=2))
 
 import time
 
