@@ -9,6 +9,7 @@ from keras.utils import np_utils
 
 from ner.category_manager import CategoryManager
 from ner.char_vector_converter import CharVectorConverter
+from ner.feature_reader import FeatureReader
 from ner.pretrained_word_vector_reader import PretrainedWordVectorReader
 
 
@@ -62,11 +63,14 @@ class NnPreprocessor:
                     words.append(normalize_word(row[0]))
                     tags.append(row[1])
                 else:
-                    if len(words) < max_sent_len:
-                        sent_words.append(words)
-                        sent_tags.append(tags)
-                    else:
+                    if len(words) > max_sent_len:
                         print('Warning an instance was removed from the dataset: {}'.format(' '.join(words)))
+                        sent_words = words[:max_sent_len]
+                        sent_tags = tags[:max_sent_len]
+
+                    sent_words.append(words)
+                    sent_tags.append(tags)
+
                     words = []
                     tags = []
 
@@ -88,7 +92,7 @@ class NnPreprocessor:
         return self.sent_words, self.sent_tags
 
 
-def load(train_dataset_file, word_vector_file, delimiter='\t', max_sent_len=-1, max_word_len=-1, load_word_vectors=True):
+def load(train_dataset_file, word_vector_file, feature_file, delimiter='\t', max_sent_len=-1, max_word_len=-1, load_word_vectors=True):
     output = dict()
 
     preprocessor = NnPreprocessor(train_dataset_file, max_sent_len)
@@ -130,6 +134,12 @@ def load(train_dataset_file, word_vector_file, delimiter='\t', max_sent_len=-1, 
     nb_classes = category_manager.get_num_classes()
     output['Y'] = Y
     output['nb_classes'] = nb_classes
+
+    feature_reader = FeatureReader(feature_file=feature_file)
+    feature_vector = np.array(feature_reader.get_feature_vector(max_sent_len))
+    output['crf_features'] = feature_vector
+    output['crf_nb_features'] = feature_vector.shape[2]
+
     return output
 
 def main():
