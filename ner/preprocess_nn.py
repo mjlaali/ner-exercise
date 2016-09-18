@@ -6,6 +6,9 @@ import numpy as np
 import pickle
 from keras.utils import np_utils
 
+from ner.category_manager import CategoryManager
+
+
 def convert_char_to_norm(c):
     if c.isdigit():
         return '0'
@@ -21,8 +24,8 @@ def pad_sequences_2D(sequence, max_dim_1, max_dim_2, dtype='int32'):
     X = []
     for i in range(len(sequence)):
         padded_sequence = pad_sequences([[] for k in range(max_dim_1 - len(sequence[i]))],
-                                        maxlen=max_dim_2, dtype=dtype, value=1).tolist() + \
-                          pad_sequences(sequence[i], maxlen=max_dim_2, dtype=dtype, value=1).tolist()
+                                        maxlen=max_dim_2, dtype=dtype).tolist() + \
+                          pad_sequences(sequence[i], maxlen=max_dim_2, dtype=dtype).tolist()
         X.append(padded_sequence)
     return np.array(X)
 
@@ -162,7 +165,7 @@ class NnPreprocessor:
 
     def pad_tags(self, raw_tag_train):
         Y_padded_train = pad_sequences(raw_tag_train, self.max_sent_len)
-        Y_one_hot = np.zeros((len(Y_padded_train), self.max_sent_len, self.nb_classes))
+        Y_one_hot = np.zeros((len(Y_padded_train), self.max_sent_len, self.nb_classes), dtype='int32')
         for i in range(len(raw_tag_train)):
             Y_one_hot[i] = np_utils.to_categorical(Y_padded_train[i], nb_classes=self.nb_classes)
         return Y_one_hot
@@ -216,8 +219,21 @@ def load(train_file, wordvects_file, delimiter='\t'):
     word_embedding_size = 301
 
     X_word, X_char, Y = preprocessor.get_padded_train_datatset()
+    sent_words, sent_tags = preprocessor.get_raw()
 
-    return X_char, X_word, Y, char_vocab_size, max_sent_len, max_word_len, word_embedding_size, nb_classes
+    category_manager = CategoryManager(sent_tags)
+
+    nb_classes = category_manager.get_num_classes()
+    Y2 = category_manager.pad_y(sent_tags, max_sent_len)
+    for i in range(29):
+        a = Y[0][i] == Y2[0][i]
+        print(a)
+        print(Y[0][i])
+        print(Y2[0][i])
+        print(Y[0][i].dtype)
+        print(Y2[0][i].dtype)
+
+    return X_char, X_word, Y2, char_vocab_size, max_sent_len, max_word_len, word_embedding_size, nb_classes
 
 if __name__ == "__main__":
     # execute only if run as a script

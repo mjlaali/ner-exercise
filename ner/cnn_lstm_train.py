@@ -134,7 +134,7 @@ def train_model(train_file, wordvects_file):
     print(model.summary())
     print('start learning the model ...')
     indexes = np.array([1])
-    model_generator.fit(X_char=X_char[indexes], X_word=X_word[indexes], Y=Y[indexes], batch_size=8, max_epochs=100)
+    model_generator.fit(X_char=X_char[indexes], X_word=X_word[indexes], Y=Y[indexes], batch_size=8, max_epochs=1000)
 
     X_char = X_char.reshape(X_char.shape[0], X_char.shape[1] * X_char.shape[2])
     Y_predict = model.predict(X_char[indexes])
