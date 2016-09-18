@@ -10,6 +10,7 @@ from keras.optimizers import Adam
 from keras.regularizers import l2
 
 import ner
+from ner.category_manager import CategoryManager
 from ner.preprocess_nn import NnPreprocessor
 from ner.report import bio_classification_report
 
@@ -56,7 +57,7 @@ class CNN_LSTM_Model:
         final_model.add(merged)
         # final_model = model_cnn
         final_model.add(Bidirectional(LSTM(output_dim=lstm_dim, activation='sigmoid', inner_activation='hard_sigmoid',
-                                 return_sequences=True), merge_mode='concat'))
+                                 return_sequences=True), merge_mode='sum'))
         final_model.add(Dropout(0.5))
         final_model.add(TimeDistributed(Dense(self.nb_classes, W_regularizer=l2(0.01))))
         final_model.add(Activation('softmax'))
@@ -90,8 +91,7 @@ class CNN_LSTM_Model:
 
 import os
 
-def test_model(model_file, test_file, wordvects_file):
-    pass
+def test_model(model_file, test_file, wordvects_file, train_file, delimiter='\t'):
     # train_file = os.path.join(os.path.dirname(__file__), '../data/coling2016/train')
     # trian_sents, y_train = preprocessor.read_tagged_file(train_file)
     # train_words_vecs, train_chars_vecs = preprocessor.convert_word_to_index(trian_sents)
@@ -99,30 +99,39 @@ def test_model(model_file, test_file, wordvects_file):
     #
     # print(train_words_vecs[10])
     # print(expected_word_idx[10])
+    train_dataset = ner.preprocess_nn.load(train_file, wordvects_file, load_word_vectors=False)
+    max_sent_len = train_dataset['max_sent_len']
+    max_word_len = train_dataset['max_word_len']
+    test_dataset = ner.preprocess_nn.load(test_file, wordvects_file,
+                                          max_sent_len=max_sent_len, max_word_len=max_word_len, delimiter=delimiter)
+    X_chars = test_dataset['X_chars']
+    X_words = test_dataset['X_words']
+    X_chars = X_chars.reshape(X_chars.shape[0], X_chars.shape[1] * X_chars.shape[2])
 
-    # X_char, X_word, Y, char_vocab_size, max_sent_len, max_word_len, nb_classes = ner.preprocess_nn.load(test_file,
-    #                                                                                                     wordvects_file)
-    # X_char = X_char.reshape(X_char.shape[0], X_char.shape[1] * X_char.shape[2])
-    # reversed_tag_dict = dict(zip(tag_dict.values(), tag_dict.keys()))
-    #
-    # model = load_model(model_file)
-    # Y_predict = model.predict([X_char_test, X_word_test])
-    # Y_predict = np.argmax(Y_predict, axis=2)
-    #
-    # y_pred = list()
-    # for i in range(Y_predict.shape[0]):
-    #     y_list = Y_predict[i].tolist()
-    #     y_pred.append([reversed_tag_dict[y] for y in y_list if y > 0])
-    #
-    # for i in range(10):
-    #     print('{}\n{}\n'.format(y_test[i], y_pred[i]))
-    #
-    # print(bio_classification_report(y_test, y_pred))
+    train_sent_tags = train_dataset['sent_tags']
+    category_manager = CategoryManager(train_sent_tags)
+
+    model = load_model(model_file)
+    print(model.summary())
+
+    Y_predict = model.predict([X_chars, X_words])
+    y_pred = category_manager.convert_to_tag(Y_predict)
+
+    test_sent_tags = test_dataset['sent_tags']
+    for i in range(10):
+        print('{}\n{}\n'.format(test_sent_tags[i], y_pred[i]))
+
+    print(bio_classification_report(test_sent_tags, y_pred))
 
 
-def train_model(train_file, wordvects_file):
-    X_char, X_word, Y, char_vocab_size, max_sent_len, max_word_len, word_embedding_size, nb_classes = \
-        ner.preprocess_nn.load(train_file, wordvects_file, delimiter='\t')
+def train_model(train_file, wordvects_file, delimiter='\t'):
+    train_dataset = ner.preprocess_nn.load(train_file, wordvects_file, delimiter=delimiter)
+
+    char_vocab_size = train_dataset['char_vocab_size']
+    nb_classes = train_dataset['nb_classes']
+    max_sent_len = train_dataset['max_sent_len']
+    max_word_len = train_dataset['max_word_len']
+    word_embedding_size = train_dataset['word_embedding_size']
     print('Chars={}, Classes={}, Max sent len={}, Max word len={}'.format(char_vocab_size, nb_classes,
                                                                        max_sent_len, max_word_len))
 
@@ -134,22 +143,28 @@ def train_model(train_file, wordvects_file):
     print(model.summary())
     print('start learning the model ...')
     indexes = np.array([1])
-    model_generator.fit(X_char=X_char[indexes], X_word=X_word[indexes], Y=Y[indexes], batch_size=8, max_epochs=1000)
+
+    X_chars = train_dataset['X_chars']
+    X_words = train_dataset['X_words']
+    Y = train_dataset['Y']
+    model_generator.fit(X_char=X_chars, X_word=X_words, Y=Y, batch_size=8, max_epochs=1000)
 
 import time
 
 if __name__ == "__main__":
-    # train_file = os.path.join(os.path.dirname(__file__), '../data/coling2016/train')
-    # wordvects_file = os.path.join(os.path.dirname(__file__), '../data/coling2016/glove.twitter.27B.200d.txt')
-    # test_file = os.path.join(os.path.dirname(__file__), '../data/coling2016/dev')
-
-    train_file = os.path.join(os.path.dirname(__file__), '../data/maluuba/train.txt')
-    wordvects_file = os.path.join(os.path.dirname(__file__), '../data/maluuba/wordvecs.txt')
+    train_file = os.path.join(os.path.dirname(__file__), '../data/coling2016/train_notypes')
+    wordvects_file = os.path.join(os.path.dirname(__file__), '../data/coling2016/glove.twitter.27B.200d.txt')
     test_file = os.path.join(os.path.dirname(__file__), '../data/coling2016/dev')
+    delimiter = ' '
 
-    idx = 37
+    # train_file = os.path.join(os.path.dirname(__file__), '../data/maluuba/train.txt')
+    # wordvects_file = os.path.join(os.path.dirname(__file__), '../data/maluuba/wordvecs.txt')
+    # test_file = os.path.join(os.path.dirname(__file__), '../data/maluuba/test.txt')
+    # delimiter = '\t'
+
+    idx = 21
     test_model_file = os.path.join(os.path.dirname(__file__), '../data/coling-tag/best_model.{:02d}.hdf5'.format(idx))
 
-    train_model(train_file, wordvects_file)
-    #test_model(test_model_file, test_file)
+    train_model(train_file, wordvects_file, delimiter=delimiter)
+    test_model(test_model_file, test_file, wordvects_file, train_file,  delimiter=delimiter)
     time.sleep(1) # delays to close the tensorflow session

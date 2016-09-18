@@ -46,6 +46,16 @@ class CategoryManager:
 
         return Y
 
+    def convert_to_tag(self, Y_predict):
+        Y_predict = np.argmax(Y_predict, axis=2)
+
+        y_pred = list()
+        for i in range(Y_predict.shape[0]):
+            y_list = Y_predict[i].tolist()
+            y_pred.append([self.reverse_dictionary[y] for y in y_list if y > 0])
+
+        return y_pred
+
     def get_num_classes(self):
         return self.nb_classes
 
