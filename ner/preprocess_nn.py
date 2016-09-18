@@ -16,6 +16,16 @@ def convert_char_to_norm(c):
 def normalize_word(word):
     return ''.join([convert_char_to_norm(c) for c in word])
 
+
+def pad_sequences_2D(sequence, max_dim_1, max_dim_2, dtype='int32'):
+    X = []
+    for i in range(len(sequence)):
+        padded_sequence = pad_sequences([[] for k in range(max_dim_1 - len(sequence[i]))],
+                                        maxlen=max_dim_2, dtype=dtype, value=1).tolist() + \
+                          pad_sequences(sequence[i], maxlen=max_dim_2, dtype=dtype, value=1).tolist()
+        X.append(padded_sequence)
+    return np.array(X)
+
 class NnPreprocessor:
 
     def __init__(self, train_file, embedding_file):
@@ -195,6 +205,19 @@ def main():
         print(sent_tags[i])
         print('sample {}:\nword = {} \ntags = {} \nchar = {} \n\tAfter padding:\nword = {} \ntags = {} \nchar = {}'.format(
               i, X_word_train[i], Y_train[i], X_char_train[i], X_word_padded[i], Y_padded[i], X_char_padded[i]))
+
+def load(train_file, wordvects_file, delimiter='\t'):
+    preprocessor = NnPreprocessor(train_file, wordvects_file)
+
+    char_vocab_size = 128 + 1
+    word_dictionary, tag_dictionary, max_sent_len, max_word_len = preprocessor.get_dictionaries_and_max()
+    word_vocab_size = len(word_dictionary) + 1
+    nb_classes = len(tag_dictionary) + 1
+    word_embedding_size = 301
+
+    X_word, X_char, Y = preprocessor.get_padded_train_datatset()
+
+    return X_char, X_word, Y, char_vocab_size, max_sent_len, max_word_len, word_embedding_size, nb_classes
 
 if __name__ == "__main__":
     # execute only if run as a script
