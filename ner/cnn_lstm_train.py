@@ -10,10 +10,11 @@ from keras.optimizers import Adam, RMSprop
 from keras.regularizers import l2
 
 import ner
+import pickle
 from ner.category_manager import CategoryManager
 from ner.preprocess_nn import NnPreprocessor
 from ner.report import bio_classification_report
-
+import os.path
 
 class CNN_LSTM_Model:
 
@@ -119,8 +120,17 @@ def test_model(model_file, test_file, wordvects_file, train_file, delimiter='\t'
 
 
 def train_model(train_file, wordvects_file, train_feature_file, delimiter='\t'):
-    train_dataset = ner.preprocess_nn.load(train_file, wordvects_file,
+    training_dataset_file = 'training-dataset.pk'
+    if os.path.isfile(training_dataset_file):
+        print('start loadding the dataset ...')
+        with open(training_dataset_file, 'rb') as input:
+            train_dataset = pickle.load(input)
+    else:
+        print('start building the dataset ...')
+        train_dataset = ner.preprocess_nn.load(train_file, wordvects_file,
                         feature_file=train_feature_file, delimiter=delimiter)
+        with open(training_dataset_file, 'wb') as output:
+            pickle.dump(train_dataset, output, pickle.HIGHEST_PROTOCOL)
 
     char_vocab_size = train_dataset['char_vocab_size']
     nb_classes = train_dataset['nb_classes']
@@ -154,6 +164,7 @@ if __name__ == "__main__":
     wordvects_file = os.path.join(os.path.dirname(__file__), '../data/coling2016/glove.twitter.27B.200d.txt')
     test_file = os.path.join(os.path.dirname(__file__), '../data/coling2016/dev')
     delimiter = ' '
+
 
     # train_file = os.path.join(os.path.dirname(__file__), '../data/maluuba/train.txt')
     # wordvects_file = os.path.join(os.path.dirname(__file__), '../data/maluuba/wordvecs.txt')
