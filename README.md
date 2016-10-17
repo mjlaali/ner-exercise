@@ -20,6 +20,6 @@ To test the learned model, please run either 'test_cnn_lstm_model.py' or 'test_c
 # Dependencies 
 1. Python 3.5
 2. Keras <https://keras.io/>
-3. Tensorflow <https://www. tensorflow.org/>
-3. Python-crfsuite <https:// python-crfsuite.readthedocs. io/en/latest/>
+3. Tensorflow <https://www.tensorflow.org/>
+3. Python-crfsuite <https://python-crfsuite.readthedocs.io/en/latest/>
 
