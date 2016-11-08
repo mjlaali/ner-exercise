@@ -1,5 +1,5 @@
 # ner-exercise
-This is an implementation of using deep learning for the Named-Entity Recognizer. We have creted three representation over the dataset, namely: 
+This is an implementation of using deep learning for the Named-Entity Recognizer. We have creted three representations over the dataset, namely: 
 
 1. Character-Level CNN representation over words.
 2. Word-embedding representation. 
